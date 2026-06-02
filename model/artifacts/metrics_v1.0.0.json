@@ -1,0 +1,17 @@
+{
+  "mean_reward": 0.000731,
+  "total_reward": 0.184,
+  "cumulative_return": 0.194,
+  "sharpe_ratio": 1.42,
+  "max_drawdown": -0.083,
+  "win_rate": 0.546,
+  "n_steps": 252,
+  "n_buy": 78,
+  "n_hold": 120,
+  "n_sell": 54,
+  "agent_version": "1.0.0",
+  "random_seed": 42,
+  "algo": "PPO",
+  "framework": "stable-baselines3",
+  "timesteps": 100000
+}

@@ -1,0 +1,13 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["model/data", "**/__pycache__", "**/artifacts"]
+
+[tool.ruff.lint]
+select = ["E","F","I","W","B"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["api/tests","tests"]
+python_files = ["test_*.py"]
+filterwarnings = ["ignore::DeprecationWarning","ignore::UserWarning"]

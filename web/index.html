@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RL Trading Agent - Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>RL Trading Agent - Live Dashboard</h1>
+    <div class="meta">
+      <span id="last-update">Loading...</span>
+      <button id="refresh-btn" onclick="loadData()">Refresh</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="cards">
+      <div class="card"><h3>Episodes</h3><p id="kpi-episodes">0</p></div>
+      <div class="card"><h3>Avg cumulative return</h3><p id="kpi-return">0%</p></div>
+      <div class="card"><h3>Avg Sharpe</h3><p id="kpi-sharpe">0</p></div>
+      <div class="card"><h3>Avg latency (ms)</h3><p id="kpi-latency">0</p></div>
+    </section>
+
+    <section class="chart-section">
+      <h2>Equity curves (last 5 episodes)</h2>
+      <canvas id="equity-chart"></canvas>
+    </section>
+
+    <section class="chart-section">
+      <h2>Action distribution (aggregated)</h2>
+      <canvas id="action-chart"></canvas>
+    </section>
+
+    <section class="table-section">
+      <h2>Recent episodes</h2>
+      <table id="recent-table">
+        <thead>
+          <tr>
+            <th>Timestamp</th><th>Blob</th><th>Algo</th><th>Agent v</th>
+            <th>Steps</th><th>Return</th><th>Sharpe</th><th>MaxDD</th>
+            <th>Win%</th><th>BUY/HOLD/SELL</th><th>Latency (ms)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer><p>ECE Paris - Distributed Systems & AI - 2025-2026 - RL Edition</p></footer>
+  <script src="app.js"></script>
+</body>
+</html>

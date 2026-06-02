@@ -1,0 +1,25 @@
+<!--
+  APIM Inbound policy for RL Trading API (Bonus 3)
+  - Quota: 500 episodes / heure / subscription (RL plus couteux que ML)
+  - Rate limit: 30 calls / minute
+  - Subscription key required
+-->
+<policies>
+  <inbound>
+    <base />
+    <quota-by-key calls="500" renewal-period="3600"
+                  counter-key="@(context.Subscription.Id)" />
+    <rate-limit-by-key calls="30" renewal-period="60"
+                       counter-key="@(context.Subscription.Id)" />
+    <set-backend-service base-url="https://rl-api.<env>.francecentral.azurecontainerapps.io" />
+  </inbound>
+  <backend><base /></backend>
+  <outbound>
+    <base />
+    <set-header name="X-Powered-By" exists-action="delete" />
+    <set-header name="X-RL-Agent" exists-action="override">
+      <value>PPO-v1</value>
+    </set-header>
+  </outbound>
+  <on-error><base /></on-error>
+</policies>

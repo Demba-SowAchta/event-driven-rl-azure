@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/ venv/
+.pytest_cache/
+.coverage htmlcov/
+model/data/ model/artifacts/*.zip api/artifacts/*.zip
+local.settings.json .env .azure/
+.DS_Store .vscode/ .idea/ *.swp
+dist/ build/ node_modules/
