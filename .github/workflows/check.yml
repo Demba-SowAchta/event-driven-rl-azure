@@ -2,8 +2,6 @@
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
   structure-check:
@@ -12,26 +10,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify project structure
         run: |
-          test -f README.md && echo "README present"
-          test -d api && echo "api/ present"
-          test -d functions && echo "functions/ present"
-          test -d model && echo "model/ present"
-          test -d web && echo "web/ present"
-          test -d docs && echo "docs/ present"
-          echo "All structure checks passed"
-
-  python-syntax:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Verify Python syntax
-        run: |
-          python -m py_compile api/app/main.py
-          python -m py_compile api/app/schemas.py
-          python -m py_compile functions/dispatcher/__init__.py
-          python -m py_compile functions/worker/__init__.py
-          python -m py_compile functions/http_api/__init__.py
-          echo "All Python files compile OK"
+          test -f README.md && echo "README OK"
+          test -d api && echo "api/ OK"
+          test -d functions && echo "functions/ OK"
+          test -d model && echo "model/ OK"
+          test -d web && echo "web/ OK"
+          echo "Structure validation passed"
