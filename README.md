@@ -16,7 +16,6 @@
 7. [Format des messages](#8-format-des-messages)
 8. [Observabilite (KQL)](#9-observabilite--kql-queries)
 9. [Estimation des couts](#10-estimation-des-couts-mensuels)
-10. [Modules bonus](#11-modules-bonus)
 
 ---
 
@@ -303,23 +302,6 @@ customEvents
 
 L'image RL est plus grosse (~700 MB avec pytorch CPU), donc CPU/RAM plus eleves -> $4 au lieu de $2.
 
----
-
-## 11. Modules bonus
-
-### Bonus 1 - A/B Testing PPO vs DQN (+1pt)
-Deploiement de 2 revisions Container Apps avec routing 80/20, comparaison KQL `algo=PPO` vs `algo=DQN`.
-
-### Bonus 2 - Load testing Locust (+1pt)
-100 utilisateurs simultanes uploadant des CSV de 252 lignes pour stresser l'autoscale.
-
-### Bonus 3 - APIM Consumption (+1pt)
-Expose l'API derriere APIM avec quota 1000 ep/h/sub.
-
-### Bonus 4 - LLM market commentary (+0.5pt)
-Apres chaque episode, appel a Hugging Face (Mistral 7B) pour generer un commentaire marche en langage naturel : *"L'agent a realise +19% en 2024 grace a une exposition longue durant le Q3. Les 5 ventes au Q2 ont evite la correction de mai."*
-
----
 
 ## Sources
 
@@ -329,5 +311,5 @@ Apres chaque episode, appel a Hugging Face (Mistral 7B) pour generer un commenta
 - [yfinance](https://pypi.org/project/yfinance/)
 - [Azure for Students](https://azure.microsoft.com/students)
 
-**Auteur** : ECE Paris - AI Group
+**Auteur** : Demba SOW ACHTA
 **Licence** : MIT
