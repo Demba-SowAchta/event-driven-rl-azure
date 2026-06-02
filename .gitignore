@@ -8,3 +8,5 @@ model/data/ model/artifacts/*.zip api/artifacts/*.zip
 local.settings.json .env .azure/
 .DS_Store .vscode/ .idea/ *.swp
 dist/ build/ node_modules/
+
+dashboard.html
