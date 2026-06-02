@@ -1,0 +1,45 @@
+﻿name: CI Check
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  structure-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify project structure
+        run: |
+          test -f README.md
+          test -d api && test -f api/Dockerfile
+          test -d functions && test -f functions/host.json
+          test -d model
+          test -d web && test -f web/index.html
+          test -d docs
+          echo "Project structure OK"
+
+  python-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install ruff
+        run: pip install ruff
+      - name: Lint Python code (non-blocking)
+        run: ruff check api/ functions/ model/ || echo "Lint warnings present (non-blocking)"
+        continue-on-error: true
+
+  swa-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify dashboard
+        run: |
+          test -f web/index.html
+          test -f web/app.js
+          test -f web/style.css
+          echo "Dashboard files present"
