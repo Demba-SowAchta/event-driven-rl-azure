@@ -9,9 +9,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          test -f README.md && echo "README OK"
-          test -d api && echo "api OK"
-          test -d functions && echo "functions OK"
-          test -d model && echo "model OK"
-          test -d web && echo "web OK"
-          echo "All structure checks passed"
+          test -f README.md
+          test -d api
+          test -d functions
+          test -d model
+          test -d web
+          echo "Project structure validated"
