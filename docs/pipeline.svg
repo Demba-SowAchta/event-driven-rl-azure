@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 760" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif">
+  <defs>
+    <filter id="card" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0f172a" flood-opacity="0.10"/>
+    </filter>
+
+    <linearGradient id="gradLine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="0.5" stop-color="#0ea5e9"/>
+      <stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <marker id="arrowAccent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/>
+    </marker>
+  </defs>
+
+  <rect width="1440" height="760" fill="#f8fafc"/>
+
+  <!-- Header -->
+  <text x="80" y="56" fill="#0f172a" font-size="26" font-weight="700">Tradeon · End-to-end pipeline</text>
+  <text x="80" y="80" fill="#475569" font-size="14">From historical market data to live RL trading decisions on Azure</text>
+  <text x="1360" y="56" text-anchor="end" fill="#94a3b8" font-size="11">ECE Paris · Distributed Systems and AI</text>
+  <text x="1360" y="74" text-anchor="end" fill="#94a3b8" font-size="11">Demba Sow Achta · 2026</text>
+
+  <!-- Phase separator -->
+  <text x="80" y="118" fill="#94a3b8" font-size="11" font-weight="600" letter-spacing="2">OFFLINE · BUILD PHASE</text>
+  <text x="900" y="118" fill="#94a3b8" font-size="11" font-weight="600" letter-spacing="2">ONLINE · RUNTIME PHASE</text>
+
+  <!-- Connecting backbone (gradient line) -->
+  <line x1="120" y1="220" x2="1380" y2="220" stroke="url(#gradLine)" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Phase boundary -->
+  <line x1="870" y1="100" x2="870" y2="700" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4 4"/>
+
+  <!-- ============== STAGE CIRCLES ============== -->
+  <!-- Each circle is centered on the backbone at y=220 -->
+
+  <!-- Stage 1: x=180 -->
+  <circle cx="180" cy="220" r="22" fill="#fff" stroke="#0ea5e9" stroke-width="3"/>
+  <text x="180" y="227" text-anchor="middle" fill="#0ea5e9" font-size="18" font-weight="700">1</text>
+
+  <!-- Stage 2: x=350 -->
+  <circle cx="350" cy="220" r="22" fill="#fff" stroke="#0ea5e9" stroke-width="3"/>
+  <text x="350" y="227" text-anchor="middle" fill="#0ea5e9" font-size="18" font-weight="700">2</text>
+
+  <!-- Stage 3: x=520 -->
+  <circle cx="520" cy="220" r="22" fill="#fff" stroke="#0ea5e9" stroke-width="3"/>
+  <text x="520" y="227" text-anchor="middle" fill="#0ea5e9" font-size="18" font-weight="700">3</text>
+
+  <!-- Stage 4: x=690 -->
+  <circle cx="690" cy="220" r="22" fill="#fff" stroke="#0ea5e9" stroke-width="3"/>
+  <text x="690" y="227" text-anchor="middle" fill="#0ea5e9" font-size="18" font-weight="700">4</text>
+
+  <!-- Stage 5: x=910 -->
+  <circle cx="910" cy="220" r="22" fill="#fff" stroke="#6366f1" stroke-width="3"/>
+  <text x="910" y="227" text-anchor="middle" fill="#6366f1" font-size="18" font-weight="700">5</text>
+
+  <!-- Stage 6: x=1080 -->
+  <circle cx="1080" cy="220" r="22" fill="#fff" stroke="#6366f1" stroke-width="3"/>
+  <text x="1080" y="227" text-anchor="middle" fill="#6366f1" font-size="18" font-weight="700">6</text>
+
+  <!-- Stage 7: x=1250 -->
+  <circle cx="1250" cy="220" r="22" fill="#fff" stroke="#6366f1" stroke-width="3"/>
+  <text x="1250" y="227" text-anchor="middle" fill="#6366f1" font-size="18" font-weight="700">7</text>
+
+  <!-- ============== STAGE TITLES (above) ============== -->
+  <text x="180" y="170" text-anchor="middle" fill="#0f172a" font-size="13" font-weight="700">Collect data</text>
+  <text x="350" y="170" text-anchor="middle" fill="#0f172a" font-size="13" font-weight="700">Train PPO</text>
+  <text x="520" y="170" text-anchor="middle" fill="#0f172a" font-size="13" font-weight="700">Containerize</text>
+  <text x="690" y="170" text-anchor="middle" fill="#0f172a" font-size="13" font-weight="700">Provision &amp; deploy</text>
+  <text x="910" y="170" text-anchor="middle" fill="#0f172a" font-size="13" font-weight="700">Ingest event</text>
+  <text x="1080" y="170" text-anchor="middle" fill="#0f172a" font-size="13" font-weight="700">Infer episode</text>
+  <text x="1250" y="170" text-anchor="middle" fill="#0f172a" font-size="13" font-weight="700">Persist &amp; show</text>
+
+  <!-- Timing under stage labels -->
+  <text x="180" y="190" text-anchor="middle" fill="#94a3b8" font-size="10" font-style="italic">~5 min</text>
+  <text x="350" y="190" text-anchor="middle" fill="#94a3b8" font-size="10" font-style="italic">~22 min</text>
+  <text x="520" y="190" text-anchor="middle" fill="#94a3b8" font-size="10" font-style="italic">~2 min</text>
+  <text x="690" y="190" text-anchor="middle" fill="#94a3b8" font-size="10" font-style="italic">~15 min</text>
+  <text x="910" y="190" text-anchor="middle" fill="#94a3b8" font-size="10" font-style="italic">~50 ms</text>
+  <text x="1080" y="190" text-anchor="middle" fill="#94a3b8" font-size="10" font-style="italic">~1-8 s</text>
+  <text x="1250" y="190" text-anchor="middle" fill="#94a3b8" font-size="10" font-style="italic">~200 ms</text>
+
+  <!-- ============== STAGE CARDS (below) ============== -->
+
+  <!-- Stage 1 -->
+  <g filter="url(#card)">
+    <rect x="100" y="260" width="160" height="170" rx="10" fill="#fff" stroke="#e2e8f0"/>
+    <rect x="100" y="260" width="160" height="6" rx="3" fill="#22d3ee"/>
+    <text x="180" y="286" text-anchor="middle" fill="#0e7490" font-size="11" font-weight="700">DATA</text>
+    <text x="115" y="312" fill="#0f172a" font-size="11" font-weight="600">Yahoo Finance</text>
+    <text x="115" y="328" fill="#64748b" font-size="10">yfinance lib</text>
+    <text x="115" y="344" fill="#64748b" font-size="10">SPY 2015-2024</text>
+    <text x="115" y="360" fill="#64748b" font-size="10">2,265 daily bars</text>
+    <line x1="115" y1="372" x2="245" y2="372" stroke="#e2e8f0"/>
+    <text x="115" y="390" fill="#475569" font-size="10" font-weight="600">Output</text>
+    <text x="115" y="406" fill="#64748b" font-size="10">SPY.csv (OHLCV)</text>
+    <text x="115" y="420" fill="#64748b" font-size="10">in model/data/</text>
+  </g>
+
+  <!-- Stage 2 -->
+  <g filter="url(#card)">
+    <rect x="270" y="260" width="160" height="170" rx="10" fill="#fff" stroke="#e2e8f0"/>
+    <rect x="270" y="260" width="160" height="6" rx="3" fill="#22d3ee"/>
+    <text x="350" y="286" text-anchor="middle" fill="#0e7490" font-size="11" font-weight="700">TRAIN</text>
+    <text x="285" y="312" fill="#0f172a" font-size="11" font-weight="600">stable-baselines3</text>
+    <text x="285" y="328" fill="#64748b" font-size="10">PPO algorithm</text>
+    <text x="285" y="344" fill="#64748b" font-size="10">17-dim obs space</text>
+    <text x="285" y="360" fill="#64748b" font-size="10">1M timesteps</text>
+    <line x1="285" y1="372" x2="415" y2="372" stroke="#e2e8f0"/>
+    <text x="285" y="390" fill="#475569" font-size="10" font-weight="600">Output</text>
+    <text x="285" y="406" fill="#64748b" font-size="10">ppo_v1.0.0.pkl</text>
+    <text x="285" y="420" fill="#64748b" font-size="10">3 MB · joblib</text>
+  </g>
+
+  <!-- Stage 3 -->
+  <g filter="url(#card)">
+    <rect x="440" y="260" width="160" height="170" rx="10" fill="#fff" stroke="#e2e8f0"/>
+    <rect x="440" y="260" width="160" height="6" rx="3" fill="#22d3ee"/>
+    <text x="520" y="286" text-anchor="middle" fill="#0e7490" font-size="11" font-weight="700">PACKAGE</text>
+    <text x="455" y="312" fill="#0f172a" font-size="11" font-weight="600">Docker multi-stage</text>
+    <text x="455" y="328" fill="#64748b" font-size="10">python:3.11-slim</text>
+    <text x="455" y="344" fill="#64748b" font-size="10">non-root user</text>
+    <text x="455" y="360" fill="#64748b" font-size="10">Trivy scanned</text>
+    <line x1="455" y1="372" x2="585" y2="372" stroke="#e2e8f0"/>
+    <text x="455" y="390" fill="#475569" font-size="10" font-weight="600">Output</text>
+    <text x="455" y="406" fill="#64748b" font-size="10">acrrlpipe3565</text>
+    <text x="455" y="420" fill="#64748b" font-size="10">.azurecr.io image</text>
+  </g>
+
+  <!-- Stage 4 -->
+  <g filter="url(#card)">
+    <rect x="610" y="260" width="160" height="170" rx="10" fill="#fff" stroke="#e2e8f0"/>
+    <rect x="610" y="260" width="160" height="6" rx="3" fill="#22d3ee"/>
+    <text x="690" y="286" text-anchor="middle" fill="#0e7490" font-size="11" font-weight="700">DEPLOY</text>
+    <text x="625" y="312" fill="#0f172a" font-size="11" font-weight="600">Bicep · GitHub OIDC</text>
+    <text x="625" y="328" fill="#64748b" font-size="10">9 Azure resources</text>
+    <text x="625" y="344" fill="#64748b" font-size="10">France Central</text>
+    <text x="625" y="360" fill="#64748b" font-size="10">Free tier where avail.</text>
+    <line x1="625" y1="372" x2="755" y2="372" stroke="#e2e8f0"/>
+    <text x="625" y="390" fill="#475569" font-size="10" font-weight="600">Output</text>
+    <text x="625" y="406" fill="#64748b" font-size="10">rl-api Container App</text>
+    <text x="625" y="420" fill="#64748b" font-size="10">scale 0 to 3 replicas</text>
+  </g>
+
+  <!-- Stage 5 -->
+  <g filter="url(#card)">
+    <rect x="830" y="260" width="160" height="170" rx="10" fill="#fff" stroke="#e2e8f0"/>
+    <rect x="830" y="260" width="160" height="6" rx="3" fill="#6366f1"/>
+    <text x="910" y="286" text-anchor="middle" fill="#4338ca" font-size="11" font-weight="700">INGEST</text>
+    <text x="845" y="312" fill="#0f172a" font-size="11" font-weight="600">Event-driven entry</text>
+    <text x="845" y="328" fill="#64748b" font-size="10">CSV to blob/input</text>
+    <text x="845" y="344" fill="#64748b" font-size="10">Event Grid fires</text>
+    <text x="845" y="360" fill="#64748b" font-size="10">dispatcher validates</text>
+    <line x1="845" y1="372" x2="975" y2="372" stroke="#e2e8f0"/>
+    <text x="845" y="390" fill="#475569" font-size="10" font-weight="600">Output</text>
+    <text x="845" y="406" fill="#64748b" font-size="10">message in</text>
+    <text x="845" y="420" fill="#64748b" font-size="10">rl-jobs queue</text>
+  </g>
+
+  <!-- Stage 6 -->
+  <g filter="url(#card)">
+    <rect x="1000" y="260" width="160" height="170" rx="10" fill="#fff" stroke="#e2e8f0"/>
+    <rect x="1000" y="260" width="160" height="6" rx="3" fill="#6366f1"/>
+    <text x="1080" y="286" text-anchor="middle" fill="#4338ca" font-size="11" font-weight="700">INFER</text>
+    <text x="1015" y="312" fill="#0f172a" font-size="11" font-weight="600">Worker calls API</text>
+    <text x="1015" y="328" fill="#64748b" font-size="10">POST /predict</text>
+    <text x="1015" y="344" fill="#64748b" font-size="10">PPO rollout in env</text>
+    <text x="1015" y="360" fill="#64748b" font-size="10">computes metrics</text>
+    <line x1="1015" y1="372" x2="1145" y2="372" stroke="#e2e8f0"/>
+    <text x="1015" y="390" fill="#475569" font-size="10" font-weight="600">Output</text>
+    <text x="1015" y="406" fill="#64748b" font-size="10">actions, sharpe,</text>
+    <text x="1015" y="420" fill="#64748b" font-size="10">equity_curve, drawdown</text>
+  </g>
+
+  <!-- Stage 7 -->
+  <g filter="url(#card)">
+    <rect x="1170" y="260" width="160" height="170" rx="10" fill="#fff" stroke="#e2e8f0"/>
+    <rect x="1170" y="260" width="160" height="6" rx="3" fill="#6366f1"/>
+    <text x="1250" y="286" text-anchor="middle" fill="#4338ca" font-size="11" font-weight="700">PERSIST</text>
+    <text x="1185" y="312" fill="#0f172a" font-size="11" font-weight="600">Save and surface</text>
+    <text x="1185" y="328" fill="#64748b" font-size="10">JSON to blob/output</text>
+    <text x="1185" y="344" fill="#64748b" font-size="10">Cosmos episodes</text>
+    <text x="1185" y="360" fill="#64748b" font-size="10">Dashboard refresh</text>
+    <line x1="1185" y1="372" x2="1315" y2="372" stroke="#e2e8f0"/>
+    <text x="1185" y="390" fill="#475569" font-size="10" font-weight="600">User-facing</text>
+    <text x="1185" y="406" fill="#64748b" font-size="10">Static Web App</text>
+    <text x="1185" y="420" fill="#64748b" font-size="10">Chart.js charts</text>
+  </g>
+
+  <!-- ============== ARROWS BETWEEN STAGES ============== -->
+  <!-- Arrows go from circle to circle (on the backbone) -->
+  <!-- They are subtle since the backbone already implies flow -->
+
+  <!-- Artifact labels below circles, above cards -->
+  <text x="265" y="244" text-anchor="middle" fill="#0ea5e9" font-size="10" font-style="italic">CSV</text>
+  <text x="435" y="244" text-anchor="middle" fill="#0ea5e9" font-size="10" font-style="italic">.pkl</text>
+  <text x="605" y="244" text-anchor="middle" fill="#0ea5e9" font-size="10" font-style="italic">image</text>
+  <text x="780" y="244" text-anchor="middle" fill="#0ea5e9" font-size="10" font-style="italic">deployed</text>
+  <text x="950" y="244" text-anchor="middle" fill="#6366f1" font-size="10" font-style="italic">job</text>
+  <text x="1165" y="244" text-anchor="middle" fill="#6366f1" font-size="10" font-style="italic">result</text>
+
+  <!-- ============== BOTTOM ROW: DEVELOPER ACTIONS ============== -->
+  <!-- Shows what the developer (you) actually does at each stage -->
+
+  <text x="80" y="490" fill="#94a3b8" font-size="11" font-weight="600" letter-spacing="2">DEVELOPER COMMAND</text>
+  <line x1="80" y1="500" x2="1380" y2="500" stroke="#e2e8f0"/>
+
+  <g>
+    <rect x="100" y="510" width="160" height="40" rx="6" fill="#0f172a"/>
+    <text x="115" y="528" fill="#22d3ee" font-size="9" font-family="Courier, monospace">python download_data.py</text>
+    <text x="115" y="542" fill="#94a3b8" font-size="9" font-family="Courier, monospace"># once</text>
+  </g>
+
+  <g>
+    <rect x="270" y="510" width="160" height="40" rx="6" fill="#0f172a"/>
+    <text x="285" y="528" fill="#22d3ee" font-size="9" font-family="Courier, monospace">python train.py</text>
+    <text x="285" y="542" fill="#94a3b8" font-size="9" font-family="Courier, monospace"># CPU only</text>
+  </g>
+
+  <g>
+    <rect x="440" y="510" width="160" height="40" rx="6" fill="#0f172a"/>
+    <text x="455" y="528" fill="#22d3ee" font-size="9" font-family="Courier, monospace">docker build + push</text>
+    <text x="455" y="542" fill="#94a3b8" font-size="9" font-family="Courier, monospace"># or via GitHub</text>
+  </g>
+
+  <g>
+    <rect x="610" y="510" width="160" height="40" rx="6" fill="#0f172a"/>
+    <text x="625" y="528" fill="#22d3ee" font-size="9" font-family="Courier, monospace">az deployment group</text>
+    <text x="625" y="542" fill="#94a3b8" font-size="9" font-family="Courier, monospace">create -f main.bicep</text>
+  </g>
+
+  <g>
+    <rect x="830" y="510" width="160" height="40" rx="6" fill="#0f172a"/>
+    <text x="845" y="528" fill="#a5b4fc" font-size="9" font-family="Courier, monospace">az storage blob upload</text>
+    <text x="845" y="542" fill="#94a3b8" font-size="9" font-family="Courier, monospace"># or drag-and-drop</text>
+  </g>
+
+  <g>
+    <rect x="1000" y="510" width="160" height="40" rx="6" fill="#0f172a"/>
+    <text x="1015" y="528" fill="#a5b4fc" font-size="9" font-family="Courier, monospace">automatic</text>
+    <text x="1015" y="542" fill="#94a3b8" font-size="9" font-family="Courier, monospace"># worker dequeues</text>
+  </g>
+
+  <g>
+    <rect x="1170" y="510" width="160" height="40" rx="6" fill="#0f172a"/>
+    <text x="1185" y="528" fill="#a5b4fc" font-size="9" font-family="Courier, monospace">automatic</text>
+    <text x="1185" y="542" fill="#94a3b8" font-size="9" font-family="Courier, monospace"># open dashboard</text>
+  </g>
+
+  <!-- ============== TELEMETRY BAND (cross-cutting) ============== -->
+  <text x="80" y="600" fill="#94a3b8" font-size="11" font-weight="600" letter-spacing="2">CROSS-CUTTING · OBSERVABILITY</text>
+  <line x1="80" y1="610" x2="1380" y2="610" stroke="#e2e8f0"/>
+
+  <g filter="url(#card)">
+    <rect x="100" y="620" width="600" height="86" rx="10" fill="#fff" stroke="#e2e8f0"/>
+    <text x="118" y="644" fill="#0f172a" font-size="13" font-weight="700">Application Insights · OpenTelemetry</text>
+    <text x="118" y="664" fill="#64748b" font-size="11">Custom metrics emitted at every stage:</text>
+    <text x="118" y="682" fill="#475569" font-size="10">episode_count · episode_reward · episode_sharpe · inference_latency_ms · api_error_count</text>
+    <text x="118" y="698" fill="#94a3b8" font-size="10" font-style="italic">Queryable in Log Analytics via KQL · graphable in App Insights dashboards</text>
+  </g>
+
+  <g filter="url(#card)">
+    <rect x="720" y="620" width="320" height="86" rx="10" fill="#fff" stroke="#e2e8f0"/>
+    <text x="738" y="644" fill="#0f172a" font-size="13" font-weight="700">GitHub Actions · CI/CD</text>
+    <text x="738" y="664" fill="#64748b" font-size="11">ci.yml runs ruff, pytest, Trivy</text>
+    <text x="738" y="682" fill="#64748b" font-size="11">deploy.yml uses OIDC, no JSON secret</text>
+    <text x="738" y="700" fill="#94a3b8" font-size="10" font-style="italic">push to main rebuilds image + Functions</text>
+  </g>
+
+  <g filter="url(#card)">
+    <rect x="1060" y="620" width="270" height="86" rx="10" fill="#fff" stroke="#e2e8f0"/>
+    <text x="1078" y="644" fill="#0f172a" font-size="13" font-weight="700">Cost guardrails</text>
+    <text x="1078" y="664" fill="#64748b" font-size="11">Free tier: Cosmos, App Insights (5GB)</text>
+    <text x="1078" y="682" fill="#64748b" font-size="11">Consumption: scale 0 when idle</text>
+    <text x="1078" y="700" fill="#94a3b8" font-size="10" font-style="italic">Observed: under $6 per month</text>
+  </g>
+
+  <!-- Footer -->
+  <line x1="80" y1="730" x2="1360" y2="730" stroke="#e2e8f0"/>
+  <text x="80" y="748" fill="#64748b" font-size="10">Stages 1-4 happen once (build phase). Stages 5-7 happen on every uploaded CSV (runtime). Cross-cutting concerns (observability, CI/CD, cost) span both phases.</text>
+</svg>

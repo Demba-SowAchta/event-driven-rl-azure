@@ -8,6 +8,9 @@ That's the short version. Longer story below.
 
 ![architecture](docs/architecture.svg)
 
+For a stage-by-stage view of how the project flows from market data to live decisions:
+
+![pipeline](docs/pipeline.svg)
 ---
 
 ## What's inside
@@ -128,10 +131,7 @@ The output looks like this:
    Actions:  BUY=18  HOLD=27  SELL=14  (59 steps)
 
    equity curve  ($11,432 top, $9,872 bottom)
-       ##
-      ####    ##
-     ######  ####
-    ###################
+  
    ...
 ```
 
