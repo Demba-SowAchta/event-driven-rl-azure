@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif">
   <defs>
     <filter id="soft" x="-5%" y="-5%" width="110%" height="115%">
@@ -11,22 +12,15 @@
     </marker>
   </defs>
 
-  <!-- background -->
   <rect width="1200" height="760" fill="#f8fafc"/>
 
-  <!-- title block -->
   <text x="60" y="58" fill="#0f172a" font-size="26" font-weight="700">Tradeon</text>
   <text x="60" y="80" fill="#475569" font-size="13">Event-driven RL trading pipeline on Azure</text>
-  <text x="1140" y="58" text-anchor="end" fill="#94a3b8" font-size="11">ECE Paris &mdash; Distributed Systems &amp; AI</text>
-  <text x="1140" y="74" text-anchor="end" fill="#94a3b8" font-size="11">Demba Sow Achta &middot; 2026</text>
+  <text x="1140" y="58" text-anchor="end" fill="#94a3b8" font-size="11">ECE Paris — Distributed Systems &amp; AI</text>
+  <text x="1140" y="74" text-anchor="end" fill="#94a3b8" font-size="11">Demba Sow Achta · 2026</text>
 
   <line x1="60" y1="98" x2="1140" y2="98" stroke="#e2e8f0" stroke-width="1"/>
 
-  <!-- =====================================================================
-       Row 1: ingestion + dispatch
-       ===================================================================== -->
-
-  <!-- User upload -->
   <g filter="url(#soft)">
     <rect x="60" y="130" width="170" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
     <text x="78" y="156" fill="#0f172a" font-size="13" font-weight="600">User uploads CSV</text>
@@ -34,7 +28,6 @@
     <text x="78" y="194" fill="#64748b" font-size="11">via Azure Portal or az CLI</text>
   </g>
 
-  <!-- Blob input -->
   <g filter="url(#soft)">
     <rect x="280" y="130" width="170" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
     <rect x="280" y="130" width="170" height="22" rx="8" fill="#fde68a"/>
@@ -44,7 +37,6 @@
     <text x="294" y="196" fill="#64748b" font-size="11">Standard LRS</text>
   </g>
 
-  <!-- Event Grid -->
   <g filter="url(#soft)">
     <rect x="500" y="130" width="170" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
     <rect x="500" y="130" width="170" height="22" rx="8" fill="#fed7aa"/>
@@ -54,7 +46,6 @@
     <text x="514" y="196" fill="#64748b" font-size="11">push to subscribers</text>
   </g>
 
-  <!-- Dispatcher -->
   <g filter="url(#soft)">
     <rect x="720" y="130" width="180" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
     <rect x="720" y="130" width="180" height="22" rx="8" fill="#bae6fd"/>
@@ -64,7 +55,6 @@
     <text x="734" y="196" fill="#64748b" font-size="11">enqueue or reject</text>
   </g>
 
-  <!-- Queue -->
   <g filter="url(#soft)">
     <rect x="950" y="130" width="170" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
     <rect x="950" y="130" width="170" height="22" rx="8" fill="#fde68a"/>
@@ -74,7 +64,6 @@
     <text x="964" y="196" fill="#64748b" font-size="11">+ rl-jobs-poison (DLQ)</text>
   </g>
 
-  <!-- arrows row 1 -->
   <path d="M 230 172 L 280 172" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
   <text x="255" y="166" text-anchor="middle" fill="#64748b" font-size="10">upload</text>
 
@@ -87,7 +76,6 @@
   <path d="M 900 172 L 950 172" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
   <text x="925" y="166" text-anchor="middle" fill="#64748b" font-size="10">if valid</text>
 
-  <!-- reject branch -->
   <g filter="url(#soft)">
     <rect x="720" y="240" width="180" height="60" rx="8" fill="#fef2f2" stroke="#fecaca" stroke-width="1"/>
     <text x="734" y="262" fill="#991b1b" font-size="11" font-weight="600">container: rejected</text>
@@ -96,11 +84,6 @@
   <path d="M 810 214 L 810 240" stroke="#dc2626" stroke-width="1.5" fill="none" marker-end="url(#arr)" stroke-dasharray="4 3"/>
   <text x="816" y="232" fill="#991b1b" font-size="10">if invalid</text>
 
-  <!-- =====================================================================
-       Row 2: processing
-       ===================================================================== -->
-
-  <!-- Worker -->
   <g filter="url(#soft)">
     <rect x="950" y="360" width="170" height="100" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
     <rect x="950" y="360" width="170" height="22" rx="8" fill="#bae6fd"/>
@@ -114,12 +97,11 @@
   <path d="M 1035 214 L 1035 360" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
   <text x="1043" y="290" fill="#64748b" font-size="10">dequeue</text>
 
-  <!-- RL API -->
   <g filter="url(#soft)">
     <rect x="500" y="360" width="350" height="160" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
     <rect x="500" y="360" width="350" height="22" rx="8" fill="#bbf7d0"/>
     <rect x="500" y="374" width="350" height="8" fill="#bbf7d0"/>
-    <text x="514" y="376" fill="#14532d" font-size="11" font-weight="600">Azure Container Apps &middot; rl-api</text>
+    <text x="514" y="376" fill="#14532d" font-size="11" font-weight="600">Azure Container Apps · rl-api</text>
 
     <text x="514" y="406" fill="#0f172a" font-size="13" font-weight="600">FastAPI service</text>
     <text x="514" y="426" fill="#475569" font-size="11">GET /health</text>
@@ -135,16 +117,14 @@
     <text x="700" y="480" fill="#166534" font-size="10">TradingEnv (gym)</text>
     <text x="700" y="496" fill="#166534" font-size="10">~3MB pickle</text>
 
-    <text x="514" y="500" fill="#94a3b8" font-size="10">scale 0 to 3 replicas &middot; consumption plan</text>
+    <text x="514" y="500" fill="#94a3b8" font-size="10">scale 0 to 3 replicas · consumption plan</text>
   </g>
 
-  <!-- arrows worker <-> api -->
   <path d="M 950 410 L 850 410" stroke="#0ea5e9" stroke-width="1.5" fill="none" marker-end="url(#arrAccent)"/>
   <text x="900" y="404" text-anchor="middle" fill="#0369a1" font-size="10">POST /predict</text>
   <path d="M 850 432 L 950 432" stroke="#0ea5e9" stroke-width="1.5" fill="none" marker-end="url(#arrAccent)"/>
   <text x="900" y="448" text-anchor="middle" fill="#0369a1" font-size="10">JSON result</text>
 
-  <!-- ACR -->
   <g filter="url(#soft)">
     <rect x="280" y="360" width="170" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
     <rect x="280" y="360" width="170" height="22" rx="8" fill="#e9d5ff"/>
@@ -156,11 +136,6 @@
   <path d="M 450 402 L 500 402" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#arr)" stroke-dasharray="3 3"/>
   <text x="475" y="396" text-anchor="middle" fill="#64748b" font-size="10">pull</text>
 
-  <!-- =====================================================================
-       Row 3: persistence + dashboard
-       ===================================================================== -->
-
-  <!-- container output -->
   <g filter="url(#soft)">
     <rect x="600" y="600" width="170" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
     <rect x="600" y="600" width="170" height="22" rx="8" fill="#fde68a"/>
@@ -170,7 +145,6 @@
     <text x="614" y="666" fill="#64748b" font-size="11">full episode replay</text>
   </g>
 
-  <!-- Cosmos -->
   <g filter="url(#soft)">
     <rect x="820" y="600" width="170" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
     <rect x="820" y="600" width="170" height="22" rx="8" fill="#e9d5ff"/>
@@ -180,7 +154,6 @@
     <text x="834" y="666" fill="#64748b" font-size="11">PK /agent_version</text>
   </g>
 
-  <!-- HTTP API (dashboard backend) -->
   <g filter="url(#soft)">
     <rect x="280" y="600" width="170" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
     <rect x="280" y="600" width="170" height="22" rx="8" fill="#bae6fd"/>
@@ -190,7 +163,6 @@
     <text x="294" y="666" fill="#64748b" font-size="11">rate-limited 60/min/IP</text>
   </g>
 
-  <!-- Dashboard -->
   <g filter="url(#soft)">
     <rect x="60" y="600" width="170" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
     <text x="78" y="624" fill="#0f172a" font-size="13" font-weight="600">Static Web App</text>
@@ -198,7 +170,6 @@
     <text x="78" y="666" fill="#475569" font-size="11">Chart.js equity curves</text>
   </g>
 
-  <!-- arrows persistence -->
   <path d="M 1010 460 L 880 600" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
   <text x="970" y="540" fill="#64748b" font-size="10">upsert episode</text>
 
@@ -211,9 +182,6 @@
   <path d="M 280 642 L 230 642" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
   <text x="255" y="635" text-anchor="middle" fill="#64748b" font-size="10">fetch</text>
 
-  <!-- =====================================================================
-       Sidebar: observability + cicd
-       ===================================================================== -->
   <g filter="url(#soft)">
     <rect x="60" y="360" width="170" height="84" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
     <text x="78" y="384" fill="#0f172a" font-size="13" font-weight="600">App Insights</text>
@@ -229,21 +197,11 @@
     <text x="78" y="520" fill="#475569" font-size="11">ci.yml + deploy.yml</text>
   </g>
 
-  <!-- dotted lines for telemetry -->
   <path d="M 500 470 Q 350 470 230 425" stroke="#94a3b8" stroke-width="1" fill="none" stroke-dasharray="3 3"/>
   <path d="M 720 215 Q 400 280 230 410" stroke="#94a3b8" stroke-width="1" fill="none" stroke-dasharray="3 3"/>
   <text x="265" y="475" fill="#94a3b8" font-size="10" font-style="italic">telemetry</text>
 
-  <path d="M 230 494 L 380 460 L 280 402" stroke="#94a3b8" stroke-width="1" fill="none" stroke-dasharray="3 3"/>
-  <text x="245" y="478" fill="#94a3b8" font-size="9" font-style="italic" transform="translate(15)">push</text>
-
-  <!-- legend / footer -->
   <line x1="60" y1="710" x2="1140" y2="710" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="60" y="730" fill="#64748b" font-size="10">
-    <tspan fill="#0f172a" font-weight="600">9 Azure resources</tspan>
-    &middot; Container Apps, Functions, Event Grid, Storage (blob+queue), Cosmos DB, ACR, Log Analytics, App Insights, Container Apps Env
-  </text>
-  <text x="60" y="746" fill="#94a3b8" font-size="10">
-    Region: France Central &middot; Free tier where available &middot; Total monthly cost observed: under $4 with daily idle hours
-  </text>
+  <text x="60" y="730" fill="#64748b" font-size="10">9 Azure resources · Container Apps, Functions, Event Grid, Storage (blob+queue), Cosmos DB, ACR, Log Analytics, App Insights, Container Apps Env</text>
+  <text x="60" y="746" fill="#94a3b8" font-size="10">Region: France Central · Free tier where available · Total monthly cost observed: under $4 with daily idle hours</text>
 </svg>
