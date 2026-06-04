@@ -1,12 +1,45 @@
+# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
-.venv/ venv/
+.venv/
+venv/
 .pytest_cache/
-.coverage htmlcov/
-model/data/ model/artifacts/*.zip api/artifacts/*.zip
-local.settings.json .env .azure/
-.DS_Store .vscode/ .idea/ *.swp
-dist/ build/ node_modules/
+.coverage
+htmlcov/
 
+# Project artefacts
+model/data/
+model/artifacts/*.zip
+api/artifacts/*.zip
+
+# Local config & secrets
+local.settings.json
+.env
+.azure/
+github_secrets.txt
+*.pem
+*.key
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Build output
+dist/
+build/
+node_modules/
+
+# Stuff that shouldn't be tracked at the repo root
 dashboard.html
+test_clean.csv
+test_spy.csv
+result.json
+screenshots.zip
+
+# Sub-bundles created during development
+final-submission/
+tradeon-polish/
+tradeon-final/

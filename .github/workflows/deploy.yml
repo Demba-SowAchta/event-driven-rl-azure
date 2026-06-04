@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Target env'
+        description: 'Target environment'
         required: true
         default: 'staging'
         type: choice
@@ -25,9 +25,7 @@ jobs:
     environment: staging
     steps:
       - uses: actions/checkout@v4
-
-      - name: Azure login (OIDC)
-        uses: azure/login@v2
+      - uses: azure/login@v2
         with:
           client-id:       ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
@@ -39,21 +37,17 @@ jobs:
       - name: Build & push RL image
         run: |
           docker build -t ${{ vars.ACR_NAME }}.azurecr.io/rl-api:$IMAGE_TAG \
-                       -t ${{ vars.ACR_NAME }}.azurecr.io/rl-api:latest \
-                       ./api
+                       -t ${{ vars.ACR_NAME }}.azurecr.io/rl-api:latest ./api
           docker push ${{ vars.ACR_NAME }}.azurecr.io/rl-api:$IMAGE_TAG
           docker push ${{ vars.ACR_NAME }}.azurecr.io/rl-api:latest
 
-      - name: Update Container Apps (RL)
-        run: |
-          az containerapp update -n ${{ vars.CONTAINER_APP }} -g ${{ vars.RG }} \
-            --image ${{ vars.ACR_NAME }}.azurecr.io/rl-api:$IMAGE_TAG
+      - name: Update Container Apps
+        run: az containerapp update -n ${{ vars.CONTAINER_APP }} -g ${{ vars.RG }} \
+              --image ${{ vars.ACR_NAME }}.azurecr.io/rl-api:$IMAGE_TAG
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
-      - name: Functions Core Tools
-        run: npm i -g azure-functions-core-tools@4 --unsafe-perm true
+      - run: npm i -g azure-functions-core-tools@4 --unsafe-perm true
 
       - name: Deploy Functions
         working-directory: ./functions
@@ -62,48 +56,36 @@ jobs:
       - name: Smoke test
         run: |
           URL=https://$(az containerapp show -n ${{ vars.CONTAINER_APP }} \
-            -g ${{ vars.RG }} --query properties.configuration.ingress.fqdn -o tsv)
-          for i in {1..10}; do
+              -g ${{ vars.RG }} --query properties.configuration.ingress.fqdn -o tsv)
+          for i in {1..15}; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" $URL/health)
-            [ "$STATUS" = "200" ] && echo "RL API healthy" && exit 0
+            [ "$STATUS" = "200" ] && echo "API healthy" && exit 0
             sleep 5
           done
-          echo "RL API NOT healthy" && exit 1
+          exit 1
 
   deploy-prod:
     runs-on: ubuntu-latest
     needs: deploy-staging
-    environment: prod   # require manual approval
+    environment: prod
     steps:
       - uses: actions/checkout@v4
-      - name: Azure login OIDC
-        uses: azure/login@v2
+      - uses: azure/login@v2
         with:
           client-id:       ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Promote image
-        run: |
-          az acr import -n ${{ vars.ACR_NAME_PROD }} \
-            --source ${{ vars.ACR_NAME }}.azurecr.io/rl-api:$IMAGE_TAG \
-            --image rl-api:$IMAGE_TAG --force
-
+      - name: Promote staging -> prod
+        run: az acr import -n ${{ vars.ACR_NAME_PROD }} \
+              --source ${{ vars.ACR_NAME }}.azurecr.io/rl-api:$IMAGE_TAG \
+              --image rl-api:$IMAGE_TAG --force
       - name: Update prod Container Apps
-        run: |
-          az containerapp update -n ${{ vars.CONTAINER_APP_PROD }} \
-            -g ${{ vars.RG_PROD }} \
-            --image ${{ vars.ACR_NAME_PROD }}.azurecr.io/rl-api:$IMAGE_TAG
-
+        run: az containerapp update -n ${{ vars.CONTAINER_APP_PROD }} \
+              -g ${{ vars.RG_PROD }} \
+              --image ${{ vars.ACR_NAME_PROD }}.azurecr.io/rl-api:$IMAGE_TAG
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
       - run: npm i -g azure-functions-core-tools@4 --unsafe-perm true
-      - name: Deploy Functions prod
+      - name: Deploy Functions to prod
         working-directory: ./functions
         run: func azure functionapp publish ${{ vars.FUNC_APP_PROD }} --python
-
-      - name: Tag release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: rl-deploy-${{ github.run_number }}
-          generate_release_notes: true

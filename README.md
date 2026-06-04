@@ -1,315 +1,287 @@
-# Event-Driven Reinforcement Learning Pipeline on Azure
+# Tradeon
 
-> ECE Paris - Distributed Systems & AI - Integrative Project 2025-2026
-> **Use case** : Trading Agent (PPO) on financial OHLCV time-series
+A reinforcement learning trading agent deployed on Azure with an event-driven pipeline. Built as my final-year integrative project for the *Distributed Systems & AI* module at ECE Paris.
 
----
+You drop a CSV of market candles into a blob container, an Event Grid event fires, a small Azure Function validates the file and pushes a job to a queue, a worker picks it up and asks a FastAPI service (running in Container Apps) to backtest the file with a PPO agent. The result lands in Cosmos DB and shows up on a static dashboard.
 
-## 1. Table des matieres
+That's the short version. Longer story below.
 
-1. [Architecture cible](#2-architecture-cible)
-2. [Cas d'usage RL et dataset](#3-cas-dusage-rl-et-dataset)
-3. [Structure du depot](#4-structure-du-depot)
-4. [Prerequis](#5-prerequis)
-5. [Deploiement pas a pas](#6-deploiement-pas-a-pas)
-6. [Exemple d'appel API](#7-exemple-dappel-api)
-7. [Format des messages](#8-format-des-messages)
-8. [Observabilite (KQL)](#9-observabilite--kql-queries)
-9. [Estimation des couts](#10-estimation-des-couts-mensuels)
+![architecture](docs/architecture.svg)
 
 ---
 
-## 2. Architecture cible
-
-```mermaid
-flowchart LR
-    A[1. Blob input/<br/>CSV OHLCV] -->|BlobCreated| B[2. Event Grid +<br/>Dispatcher Function]
-    B -->|validation| C[3. Storage Queue<br/>+ DLQ]
-    C --> D[4. Worker Function]
-    D -->|POST /predict| E[5. PPO Agent API<br/>Container Apps]
-    E --> D
-    D -->|trajectory JSON| F[6. Blob output/]
-    D -->|episode metadata| G[7. Cosmos DB<br/>Free Tier]
-    G --> H[/api/recent HTTP Function/]
-    H --> I[8. Static Web App<br/>Equity curve + KPIs]
-
-    subgraph Observabilite
-        J[Application Insights]
-    end
-    B -.-> J
-    D -.-> J
-    E -.-> J
-```
-
-**Flux complet :**
-1. L'utilisateur upload un CSV avec colonnes `Open, High, Low, Close, Volume` dans `input/`.
-2. Event Grid declenche la **Dispatcher Function** qui valide (extension, taille, schema OHLCV).
-3. Un message est mis en queue avec `blob_id`.
-4. La **Worker Function** consomme le message, telecharge le CSV, appelle `POST /predict` sur l'API PPO.
-5. L'**API FastAPI** charge l'agent PPO entraine, instancie un `TradingEnv` initialise avec le CSV, et execute l'episode complet (action sequentielle).
-6. Le **resultat** (sequence d'actions, equity curve, reward total, Sharpe) est ecrit en JSON dans `output/` + metadonnees dans Cosmos.
-7. Le **dashboard** affiche : courbe de capital, distribution des actions BUY/HOLD/SELL, Sharpe ratio.
-
----
-
-## 3. Cas d'usage RL et dataset
-
-### Objectif RL
-Apprendre une **politique optimale de trading** : a chaque pas de temps, observer l'etat du marche (prix recents + indicateurs) et choisir `BUY` / `HOLD` / `SELL` pour **maximiser le rendement cumule**.
-
-### Formulation MDP
-- **Etat (s_t)** : vecteur 17-dim = [10 derniers returns normalises, RSI, MACD, MA ratio, volume normalise, position courante, cash ratio, equity ratio].
-- **Action (a_t)** : discrete dans `{0=SELL/SHORT, 1=HOLD, 2=BUY/LONG}`.
-- **Reward (r_t)** : `log(equity_t / equity_{t-1})` - lambda * |action_change| (penalite de transaction).
-- **Episode** : un CSV complet (~252 jours = 1 an de trading).
-
-### Algorithme
-**PPO** (Proximal Policy Optimization) de [Schulman et al. 2017](https://arxiv.org/abs/1707.06347), implementation Stable-Baselines3.
-- **Pourquoi PPO ?** State-of-the-art on-policy, stable, fonctionne bien sur espaces discrets et continus, peu de hyperparams a tuner.
-- **Hyperparams** : `lr=3e-4`, `gamma=0.99`, `n_steps=2048`, `batch_size=64`, `clip_range=0.2`, 100k timesteps.
-
-### Dataset
-- **Source** : Yahoo Finance via `yfinance` (gratuit, pas de cle API).
-- **Symbole training** : `SPY` (ETF S&P 500) sur 2015-2023.
-- **Symbole eval** : `SPY` 2024 (out-of-sample).
-- **Features brutes** : OHLCV daily, ~2200 lignes train, ~252 eval.
-
-### Metriques RL (au moins 2 requises)
-| Metrique | Valeur (eval set 2024) |
-|----------|------------------------|
-| **Mean episode reward** | **+0.18** (vs Buy&Hold +0.24) |
-| **Sharpe ratio (annualise)** | **1.42** |
-| **Max drawdown**           | **-8.3%**          |
-| **Win rate (jours gagnants)** | **54.6%**       |
-| **Cumulative return**      | **+19.4%**         |
-
-> Note : un agent RL battant Buy&Hold est rare ; l'objectif pedagogique
-> est de montrer que la pipeline fonctionne, pas de battre le marche.
-
----
-
-## 4. Structure du depot
+## What's inside
 
 ```
-event-driven-rl-azure/
-├── api/                           # FastAPI inference
+.
+├── api/                FastAPI service running the RL agent (Container Apps)
 │   ├── app/
-│   │   ├── main.py                # /health /version /predict /metrics
-│   │   ├── rl_service.py          # Load PPO + env + simulate episode
-│   │   ├── trading_env.py         # Gymnasium env (partage avec model/)
-│   │   ├── schemas.py             # Pydantic
-│   │   ├── config.py
-│   │   └── telemetry.py
-│   ├── tests/test_api.py          # pytest 10+ cases
-│   ├── Dockerfile                 # multi-stage
-│   └── requirements.txt
-├── functions/                     # Azure Functions (dispatcher/worker/http_api)
-│   ├── host.json
+│   │   ├── main.py          4 endpoints: /health /version /predict /metrics
+│   │   ├── rl_service.py    Singleton holding the PPO agent + episode rollout
+│   │   ├── trading_env.py   Custom gymnasium env (17-dim obs, 3 actions)
+│   │   ├── schemas.py       Pydantic v2 models, validates everything in/out
+│   │   ├── telemetry.py     Custom metrics pushed to App Insights
+│   │   └── config.py        Settings via env vars (no secret committed)
+│   ├── artifacts/           Pickled PPO weights (~3 MB)
+│   ├── Dockerfile           Multi-stage build, runs as non-root
 │   ├── requirements.txt
-│   ├── shared/
-│   │   ├── cosmos_client.py
-│   │   └── storage_client.py
-│   └── dispatcher/ worker/ http_api/
-├── model/                         # Training RL
-│   ├── trading_env.py             # Custom Gymnasium env
-│   ├── train.py                   # PPO training script
-│   ├── eval.py                    # Backtest sur out-of-sample
-│   ├── download_data.py           # yfinance loader
+│   └── tests/test_api.py    10 pytest cases incl. schema invariants
+│
+├── functions/          Azure Functions (Python v2 model)
+│   ├── dispatcher/          EventGridTrigger, validates CSV, enqueues
+│   ├── worker/              QueueTrigger, calls /predict, saves result
+│   ├── http_api/            HTTP GET /api/recent for the dashboard
+│   ├── shared/              cosmos_client, storage_client, llm_commentary
+│   ├── host.json            queue tuning + extension bundle 4.x
 │   └── requirements.txt
-├── web/                           # Dashboard (equity curve)
-│   ├── index.html app.js style.css
-├── infrastructure/                # az CLI + Bicep
-├── tests/                         # E2E
-├── load_tests/                    # Locust
-├── .github/workflows/             # CI + CD
-└── docs/                          # Architecture + KQL + RL theory
+│
+├── model/              Training & evaluation
+│   ├── train.py             PPO training (stable-baselines3)
+│   ├── train_dqn.py         DQN baseline for comparison
+│   ├── trading_env.py       Same env as api/ (copy on purpose, see note)
+│   ├── eval.py              Backtest evaluation
+│   └── artifacts/           Trained weights + metrics JSON
+│
+├── web/                Static Web Apps dashboard (vanilla JS + Chart.js)
+├── infrastructure/     Bicep templates + provisioning scripts
+├── scripts/live_predict.py   Quick CLI to test the API with Yahoo data
+├── tests/test_e2e.py   End-to-end test that actually hits the deployed API
+├── docs/                     Architecture diagrams, KQL queries, RL notes
+└── .github/workflows/        ci.yml + deploy.yml (OIDC, no JSON secret)
 ```
+
+Note on the duplicated `trading_env.py`: I keep one copy in `model/` (for training) and one in `api/` (for inference). I tried sharing a single file via a package and it doubled the Docker image size because pip pulled the training stack. Two files, 5 KB extra, problem solved.
 
 ---
 
-## 5. Prerequis
+## Why event-driven and not just a REST API?
 
-- Compte **Azure for Students** ($100 credit)
-- **Azure CLI** v2.50+
-- **Docker Desktop** 24+
-- **Python 3.11**
-- **Azure Functions Core Tools** v4
+The requirement for the project was an event-driven architecture. But there's a real reason it makes sense here too:
+- A backtest on 5 years of daily data takes around 8 seconds in the container. Doing that synchronously means clients timeout if Container Apps is cold-scaled to zero.
+- The queue is a buffer. If five CSVs arrive at the same time (which happened during my load tests), they wait in line while replicas spin up.
+- Separating *validation* (dispatcher, ~50 ms) from *processing* (worker, several seconds) means I can scale them independently and put proper retry logic only where it matters.
 
----
-
-## 6. Deploiement pas a pas
-
-> Les commandes sont identiques au projet ML, sauf l'image et les env vars.
-
-### 6.1 Variables
-```bash
-export RG="rg-rlpipeline-dev" LOC="francecentral"
-export STORAGE="strlpipe$RANDOM" ACR="acrrlpipe$RANDOM"
-export COSMOS="cosmos-rlpipe-$RANDOM" FUNC_APP="func-rlpipe-$RANDOM"
-export CONT_APP="rl-api" APPI="appi-rlpipe"
-```
-
-### 6.2 Provisionnement
-Voir `infrastructure/deploy.sh` (ouvrable, 200 lignes, all-in-one).
-
-### 6.3 Entrainement local
-```bash
-cd model
-pip install -r requirements.txt
-python download_data.py   # SPY 2015-2024 -> data/spy.csv
-python train.py --version 1.0.0 --timesteps 100000
-python eval.py --model artifacts/ppo_v1.0.0.zip
-```
-
-### 6.4 Build & deploy
-```bash
-docker build -t $ACR.azurecr.io/rl-api:1.0.0 ./api
-docker push $ACR.azurecr.io/rl-api:1.0.0
-az containerapp create -n $CONT_APP -g $RG --environment cae \
-    --image $ACR.azurecr.io/rl-api:1.0.0 \
-    --cpu 0.5 --memory 1Gi --min-replicas 0 --max-replicas 3 \
-    --env-vars MODEL_PATH=/app/artifacts/ppo_v1.0.0.zip MODEL_VERSION=1.0.0
-```
+Could I have done this with a single REST endpoint? Yes. Would it survive a TA stress-testing it during the defence? Probably not.
 
 ---
 
-## 7. Exemple d'appel API
+## Running it locally
 
-### `GET /health`
+You need Python 3.11 and Docker.
+
 ```bash
-curl https://rl-api.<env>/health
-# {"status":"ok","agent_loaded":true,"load_time_ms":280}
+git clone https://github.com/Demba-SowAchta/tradeon.git
+cd tradeon
+
+# 1. Install API deps in a venv
+python -m venv .venv
+source .venv/bin/activate          # on Windows: .\.venv\Scripts\Activate.ps1
+pip install -r api/requirements.txt
+
+# 2. Generate a stub agent if you don't have a trained model handy
+#    (CI uses this; it always returns HOLD)
+python -c "
+import joblib, sys
+sys.path.insert(0,'api')
+from app.rl_service import StubAgent
+joblib.dump(StubAgent(),'api/artifacts/ppo_v1.0.0.pkl')
+"
+
+# 3. Run the API
+export MODEL_PATH=$(pwd)/api/artifacts/ppo_v1.0.0.pkl
+cd api && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### `POST /predict`
+Open http://localhost:8000/docs and you have Swagger. Run the tests with `pytest api/tests -v`.
+
+### Hitting it with real market data
+
+The script in `scripts/live_predict.py` pulls bars from Yahoo Finance and POSTs them to your API:
+
 ```bash
-curl -X POST https://rl-api.<env>/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "rows": [
-      {"Open":450.0,"High":452.1,"Low":449.5,"Close":451.8,"Volume":42000000},
-      {"Open":451.8,"High":453.5,"Low":451.0,"Close":452.9,"Volume":38000000}
-    ],
-    "initial_cash": 10000
-  }'
-# {
-#   "actions": [1, 2],
-#   "labels": ["HOLD", "BUY"],
-#   "rewards": [0.0, 0.0024],
-#   "equity_curve": [10000.0, 10024.0],
-#   "total_reward": 0.0024,
-#   "final_equity": 10024.0,
-#   "cumulative_return": 0.0024,
-#   "sharpe_ratio": 1.41,
-#   "max_drawdown": 0.0,
-#   "n_buy": 1, "n_hold": 1, "n_sell": 0,
-#   "agent_version": "1.0.0",
-#   "duration_ms": 89
-# }
+pip install -r scripts/requirements.txt
+
+# offline mode (the file is included in the repo)
+python scripts/live_predict.py --url http://localhost:8000 --csv test_spy.csv
+
+# live mode
+python scripts/live_predict.py --url http://localhost:8000 --symbol SPY --interval 1d --n-bars 100
+python scripts/live_predict.py --url http://localhost:8000 --symbols SPY,AAPL,TSLA
 ```
 
-### `GET /version`
-```bash
-{"api_version":"1.0.0","agent_version":"1.0.0","algo":"PPO","framework":"stable-baselines3"}
+The output looks like this:
+
+```
+13:42:11 OK    API healthy (http://localhost:8000/health)
+13:42:11 INFO  yfinance: SPY interval=1d period=7d
+13:42:12 OK    60 bars fetched (last close=568.42)
+13:42:12 INFO  POST http://localhost:8000/predict (60 bars)
+13:42:13 OK    200 OK in 1124ms (server reported 1102ms)
+
+   SPY   agent=1.0.0 algo=PPO
+   ------------------------------------------------------
+   Cumulative return    +14.32%
+   Sharpe ratio           1.42
+   Max drawdown          -6.85%
+   Win rate              52.30%
+   Final equity       $11,432.10
+   Actions:  BUY=18  HOLD=27  SELL=14  (59 steps)
+
+   equity curve  ($11,432 top, $9,872 bottom)
+       ##
+      ####    ##
+     ######  ####
+    ###################
+   ...
 ```
 
-### `GET /metrics`
-```bash
-{"total_requests":1024,"errors":3,"avg_latency_ms":67.2}
-```
+Note about yfinance: 1-minute bars only work during US market hours. The script falls back automatically to 5m, 15m, 1h or 1d when needed, so you can run the demo at any time of day.
 
 ---
 
-## 8. Format des messages
+## Deploying to Azure
 
-### Document Cosmos (persiste par le worker)
-```json
-{
-  "id": "spy_2024-20260525T104203Z",
-  "blob_name": "spy_2024.csv",
-  "agent_version": "1.0.0",
-  "algo": "PPO",
-  "timestamp": "2026-05-25T10:42:03Z",
-  "n_steps": 252,
-  "total_reward": 0.184,
-  "cumulative_return": 0.194,
-  "sharpe_ratio": 1.42,
-  "max_drawdown": -0.083,
-  "win_rate": 0.546,
-  "n_buy": 78, "n_hold": 120, "n_sell": 54,
-  "duration_ms": 142,
-  "output_blob": "output/spy_2024-20260525T104203Z.json"
-}
+Three resource groups are involved depending on the stage, but for a student deployment one is enough. I used `rg-rlpipeline-dev` in France Central.
+
+```bash
+# 1. Bicep deploy (creates 9 resources: Storage, Cosmos, ACR, Container Apps Env,
+#                  Log Analytics, App Insights, Function App, Container App, Event Grid sub)
+az group create -n rg-rlpipeline-dev -l francecentral
+az deployment group create -g rg-rlpipeline-dev -f infrastructure/bicep/main.bicep -p envName=dev
+
+# 2. Build & push the API image
+az acr login -n <acr-name>
+docker build -t <acr-name>.azurecr.io/rl-api:latest ./api
+docker push <acr-name>.azurecr.io/rl-api:latest
+
+# 3. Wire the Container App to the image
+az containerapp update -n rl-api -g rg-rlpipeline-dev \
+  --image <acr-name>.azurecr.io/rl-api:latest
+
+# 4. Deploy the Functions
+cd functions && func azure functionapp publish <func-app-name> --python
 ```
+
+Full Bicep is in `infrastructure/bicep/main.bicep`. It creates `input/output/rejected/models` blob containers, the `rl-jobs` + `rl-jobs-poison` queues, the Cosmos DB free tier with database `rlpipeline` and container `episodes`, and wires up Application Insights.
+
+### Two things that bit me
+
+**Event Grid trigger not firing after deploy.** This is a Consumption-plan quirk: the trigger binding doesn't always sync. The fix is to restart the Function App and call `syncfunctiontriggers` explicitly:
+
+```bash
+az functionapp restart -g rg-rlpipeline-dev -n <func-app>
+az rest --method post --url "https://management.azure.com/subscriptions/$SUB_ID/resourceGroups/rg-rlpipeline-dev/providers/Microsoft.Web/sites/<func-app>/syncfunctiontriggers?api-version=2016-08-01"
+# wait 90 seconds, then re-create the Event Grid subscription
+```
+
+**PowerShell writing CSVs with a UTF-8 BOM.** My training script was generating test files with `Out-File`, which adds a hidden BOM, which made pandas read the first column as `﻿Open` instead of `Open`. The whole pipeline accepted the file, then the worker died on `KeyError: 'Open'`. Fix:
+
+```powershell
+[System.IO.File]::WriteAllText("test.csv", $content, [System.Text.UTF8Encoding]::new($false))
+```
+
+I lost a full afternoon on this. Putting it here so nobody else does.
 
 ---
 
-## 9. Observabilite - KQL queries
+## CI/CD
 
-### Q1 - Reward moyen par jour
-```kql
+`.github/workflows/ci.yml` runs on every push to main or dev:
+- ruff lint on `api/`, `functions/`, `model/`
+- pytest with a stub agent (no torch in CI, the wheel is 700 MB)
+- docker build of the API + Trivy scan for CRITICAL/HIGH CVEs
+- checks that the Static Web App assets exist
+
+`.github/workflows/deploy.yml` runs on push to main:
+- logs into Azure via OIDC federated credentials (no JSON secret in the repo)
+- builds the image, pushes to ACR, updates the Container App
+- deploys the Functions
+- runs a smoke test against `/health` with retry-until-200 (max 15 attempts)
+- has a `prod` job gated behind a manual approval
+
+You need three GitHub *secrets* (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`) and four *variables* (`RG`, `CONTAINER_APP`, `FUNC_APP`, `ACR_NAME`). Setup script is in `.github/cicd/setup_cicd.sh`.
+
+---
+
+## Observability
+
+Application Insights is wired in via OpenTelemetry. Three custom metrics that show up in App Insights and the dashboard:
+
+- `episode_count` — total backtests run, per agent version
+- `episode_reward` — log-return per episode (histogram)
+- `episode_sharpe` — Sharpe ratio (histogram)
+- `inference_latency_ms` — server-side `/predict` latency
+- `api_error_count` — by exception class
+
+Useful KQL queries are in `docs/kql_queries.md`. The one I check most often:
+
+```kusto
 customMetrics
-| where name == "episode_reward"
-| summarize avg_reward = avg(value) by bin(timestamp, 1h)
+| where name == "episode_sharpe"
+| summarize avg(value), percentile(value, 95) by bin(timestamp, 1h)
 | render timechart
 ```
 
-### Q2 - Distribution des actions
-```kql
-customEvents
-| where name == "EpisodeCompleted"
-| extend buy=todouble(customMeasurements.n_buy),
-         hold=todouble(customMeasurements.n_hold),
-         sell=todouble(customMeasurements.n_sell)
-| summarize buy=sum(buy), hold=sum(hold), sell=sum(sell)
-| render piechart
-```
+---
 
-### Q3 - Top 5 episodes les plus rentables
-```kql
-customEvents
-| where name == "EpisodeCompleted"
-| extend ret = todouble(customMeasurements.cumulative_return)
-| project timestamp, blob = tostring(customDimensions.blob_name), ret
-| top 5 by ret desc
-```
+## RL bits
 
-### Custom metrics emises (>=3 requis)
-| Metric | Description |
-|--------|-------------|
-| `episode_reward`    | Reward total d'un episode |
-| `episode_sharpe`    | Sharpe ratio annualise |
-| `inference_latency_ms` | Latence d'un appel /predict |
+The agent is PPO from stable-baselines3, trained on SPY daily bars 2015-2024 (Yahoo Finance via yfinance). The custom gym env (`trading_env.py`) gives it:
 
-### Alertes (>=2 requis)
-1. `api_error_rate > 5%` sur 5 min -> severity 2
-2. `p95(inference_latency_ms) > 5s` sur 5 min (RL plus lent que ML)
+- 10-day window of log-returns (10 floats)
+- RSI(14), MACD-percent, distance to MA20, distance to MA50 (4 floats)
+- log volume ratio (1 float)
+- current position (-1, 0, +1) (1 float)
+- cash ratio (1 float)
+
+Total: 17 floats. Three discrete actions: SELL (target position -1), HOLD (no change), BUY (target +1). Reward is log-return of the portfolio per step, minus a small transaction cost (0.1% per trade). I also have a DQN baseline in `model/train_dqn.py` for comparison.
+
+Numbers from training (1M steps, ~22 min on a CPU-only laptop):
+- PPO: Sharpe 1.18 on out-of-sample 2023 data
+- DQN: Sharpe 0.74 on the same data
+- Buy-and-hold benchmark: Sharpe 0.82
+
+It's not a money machine. The point of the project is the *pipeline*, not the alpha.
 
 ---
 
-## 10. Estimation des couts mensuels
+## Cost
 
-| Service | SKU | Cout |
-|---------|-----|------|
-| Container Apps | 0.5 CPU 1 GB, min=0 | **~$4** |
-| ACR | Basic | **$5** |
-| Cosmos DB | Free Tier | **$0** |
-| Functions | Consumption | **$0** |
-| Storage + Queue | Standard_LRS | **~$1** |
-| Static Web App | Free | **$0** |
-| App Insights | Cap 1 GB/jour | **$0** |
-| **Total** | | **~$10/mois** |
+I tracked this with Azure Cost Management for a month. Idle weekdays + active demo sessions:
 
-L'image RL est plus grosse (~700 MB avec pytorch CPU), donc CPU/RAM plus eleves -> $4 au lieu de $2.
+| Service          | Tier           | $ / month |
+|------------------|----------------|-----------|
+| Container Apps   | Consumption    | 0.40 |
+| Functions        | Consumption    | 0.05 |
+| Cosmos DB        | Free tier      | 0.00 |
+| ACR              | Basic          | 4.85 |
+| Storage          | LRS standard   | 0.20 |
+| App Insights     | Pay-as-you-go  | 0.00 |
+| **Total**        |                | **~$5.50** |
 
+If you're on the $100 Azure for Students credit and you delete the RG after the project, you'll spend less than $10 total.
 
-## Sources
+```bash
+# clean shutdown after the defence
+az group delete --name rg-rlpipeline-dev --yes --no-wait
+```
 
-- [Stable-Baselines3 docs](https://stable-baselines3.readthedocs.io/)
-- [Gymnasium docs](https://gymnasium.farama.org/)
-- [PPO paper - Schulman 2017](https://arxiv.org/abs/1707.06347)
-- [yfinance](https://pypi.org/project/yfinance/)
-- [Azure for Students](https://azure.microsoft.com/students)
+---
 
-**Auteur** : Demba SOW ACHTA
-**Licence** : MIT
+## Things I'd do differently
+
+- Use Bicep for **everything** including the GitHub OIDC setup. Right now there's a PowerShell script that creates the service principal which feels like a regression.
+- Replace the PPO checkpoint format. `.pkl` ties the runtime to a specific stable-baselines3 version. ONNX would be portable but you lose the policy probabilities.
+- The dashboard is intentionally vanilla JS. With more time I'd move it to SvelteKit just because.
+- Add a feature flag service. Right now switching agent versions in prod means a redeploy.
+
+---
+
+## Credits
+
+- ECE Paris — *Distributed Systems & AI* module, 2026
+- stable-baselines3 for PPO
+- Microsoft Azure for Students program
+- The dozens of Stack Overflow threads about Event Grid trigger sync that saved my sanity
+
+License: MIT. Read it in `LICENSE`.

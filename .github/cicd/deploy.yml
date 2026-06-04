@@ -1,0 +1,97 @@
+name: Deploy to Azure (Staging)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'functions/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write    # Required for OIDC
+  contents: read
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate Python syntax
+        run: |
+          python -m py_compile api/app/main.py
+          python -m py_compile functions/dispatcher/__init__.py
+          python -m py_compile functions/worker/__init__.py
+          echo "All Python files compile OK"
+
+  deploy-staging:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      # Authenticate to Azure via OIDC (no secret to manage!)
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify Azure connection
+        run: |
+          az account show --query "{name:name, id:id}" -o table
+          echo "Authentication: OK"
+
+      - name: List deployed resources
+        run: |
+          az resource list -g ${{ vars.RG }} --output table
+
+      - name: Verify ML API is healthy
+        run: |
+          FQDN=$(az containerapp show -n ${{ vars.CONTAINER_APP }} -g ${{ vars.RG }} --query properties.configuration.ingress.fqdn -o tsv)
+          echo "API URL: https://$FQDN"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://$FQDN/health")
+          if [ "$HTTP_CODE" -eq "200" ]; then
+            echo "✓ Health check PASSED ($HTTP_CODE)"
+          else
+            echo "✗ Health check FAILED (got $HTTP_CODE)"
+            exit 1
+          fi
+
+      - name: Verify Functions are deployed
+        run: |
+          az functionapp function list -g ${{ vars.RG }} -n ${{ vars.FUNC_APP }} --query "[].name" -o table
+
+      - name: Smoke test /predict endpoint
+        run: |
+          FQDN=$(az containerapp show -n ${{ vars.CONTAINER_APP }} -g ${{ vars.RG }} --query properties.configuration.ingress.fqdn -o tsv)
+          echo '{"rows":[{"Open":100,"High":101,"Low":99,"Close":100,"Volume":1000000}],"initial_cash":10000}' > /tmp/payload.json
+          # Need 12 rows minimum, so we generate them
+          python3 -c "
+          import json
+          rows = [{'Open':100+i*0.5,'High':101+i*0.5,'Low':99+i*0.5,'Close':100+i*0.5,'Volume':1000000} for i in range(12)]
+          json.dump({'rows':rows,'initial_cash':10000}, open('/tmp/payload.json','w'))
+          "
+          RESPONSE=$(curl -s -X POST "https://$FQDN/predict" -H "Content-Type: application/json" -d @/tmp/payload.json)
+          echo "Response: $RESPONSE" | head -c 200
+          # Just check we got a 200-style payload
+          echo "$RESPONSE" | grep -q "actions" && echo "✓ Smoke test PASSED" || (echo "✗ Smoke test FAILED" && exit 1)
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Image tag: \`$IMAGE_TAG\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Container App: \`${{ vars.CONTAINER_APP }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Function App: \`${{ vars.FUNC_APP }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Resource Group: \`${{ vars.RG }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Health check: ✓ PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "- Smoke test: ✓ PASSED" >> $GITHUB_STEP_SUMMARY

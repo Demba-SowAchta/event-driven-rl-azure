@@ -1,9 +1,25 @@
 """
-Worker Function - consume queue, call RL API, persist trajectory.
+Worker Function (QueueTrigger sur rl-jobs).
 
-Idempotent: doc_id = blob_name + run_timestamp.
+Pour chaque job en queue:
+  1. Telecharger le CSV depuis le conteneur `input`
+  2. Parser le CSV en list[dict] OHLCV
+  3. POST /predict sur l'API RL (Container Apps)
+  4. Upload du JSON resultat dans le conteneur `output`
+  5. Upsert d'un document Cosmos dans la collection `episodes`
+  6. (optionnel) Enrichir le doc avec un commentaire LLM Hugging Face
+
+Si une etape echoue, l'exception remonte et la queue Azure re-livre le
+message jusqu'a maxDequeueCount (5 par defaut, configure dans host.json).
+Apres 5 echecs, le message file en queue `rl-jobs-poison`.
 """
-import csv, io, json, logging, os, sys, time, uuid
+import csv
+import io
+import json
+import logging
+import os
+import sys
+import time
 from datetime import datetime, timezone
 
 import azure.functions as func
@@ -12,81 +28,115 @@ import requests
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from shared import config, cosmos_client, storage_client
 
-_session = requests.Session()
-_session.headers.update({"Content-Type": "application/json"})
+# LLM commentary est facultatif (token HuggingFace optionnel).
+try:
+    from shared.llm_commentary import market_commentary
+except Exception:
+    market_commentary = lambda doc: None  # noqa: E731
 
 
-def _parse_csv(text):
+def _parse_csv(text: str) -> list[dict]:
+    """
+    Parse le CSV en liste de dicts.  L'API attend les colonnes
+    Open/High/Low/Close/Volume en float strict (Pydantic gt=0).
+    Si une cellule est vide ou non-numerique, on raise pour partir
+    en poison queue (= input clairement invalide).
+    """
     reader = csv.DictReader(io.StringIO(text))
     rows = []
-    for raw in reader:
-        try:
-            row = {c: float(raw[c]) for c in config.EXPECTED_COLUMNS}
-            rows.append(row)
-        except (KeyError, ValueError) as exc:
-            logging.warning("Skipped row: %s", exc)
+    for row in reader:
+        rows.append({
+            "Open":   float(row["Open"]),
+            "High":   float(row["High"]),
+            "Low":    float(row["Low"]),
+            "Close":  float(row["Close"]),
+            "Volume": float(row["Volume"]),
+        })
     return rows
 
 
-def main(msg: func.QueueMessage):
-    t0 = time.perf_counter()
+def main(msg: func.QueueMessage) -> None:
+    """
+    Entry point du worker.
+
+    `msg` est un QueueMessage Azure.  Le body est base64-decode par le
+    runtime (cf. host.json: BinaryBase64EncodePolicy cote producer).
+    On JSON-load et on a un dict {blob_name, blob_hash, event_id}.
+    """
     job = json.loads(msg.get_body().decode("utf-8"))
-    blob_name = job["blob_id"]
-    container = job.get("blob_container", config.INPUT_CONTAINER)
-    initial_cash = job.get("initial_cash", config.INITIAL_CASH)
-    trace_id = job.get("trace_id", str(uuid.uuid4()))
+    blob_name = job["blob_name"]
+    blob_hash = job.get("blob_hash", "?")
+    logging.info("Worker start blob=%s hash=%s", blob_name, blob_hash)
 
-    logging.info("Worker RL processing blob=%s trace=%s", blob_name, trace_id)
+    t_start = time.perf_counter()
 
-    csv_text = storage_client.download_blob_text(container, blob_name)
-    rows = _parse_csv(csv_text)
-    if len(rows) < 10:
-        logging.warning("Too few rows in %s, skipping", blob_name)
-        return
+    # 1. Telecharger le CSV
+    text = storage_client.download_blob_text(config.INPUT_CONTAINER, blob_name)
+    try:
+        rows = _parse_csv(text)
+    except (ValueError, KeyError) as exc:
+        logging.error("CSV parse failed for %s: %s", blob_name, exc)
+        raise  # -> poison queue, l'operateur regarde
 
-    # Call RL API
-    api_t0 = time.perf_counter()
-    resp = _session.post(f"{config.RL_API_URL}/predict",
-                          json={"rows": rows, "initial_cash": initial_cash},
-                          timeout=60)
+    if len(rows) < config.MIN_ROWS:
+        raise ValueError(f"only {len(rows)} rows, need {config.MIN_ROWS}")
+
+    # 2. Appeler l'API RL
+    payload = {"rows": rows, "initial_cash": config.INITIAL_CASH}
+    resp = requests.post(
+        f"{config.RL_API_URL}/predict",
+        json=payload,
+        timeout=120,  # Container Apps cold-start peut prendre 30s
+    )
     resp.raise_for_status()
-    api_ms = (time.perf_counter() - api_t0) * 1000
-    api_data = resp.json()
+    result = resp.json()
 
-    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    doc_id = f"{blob_name.replace('/', '-')}-{ts}"
+    # 3. Sauver le resultat brut dans `output`
+    output_blob_name = blob_name.replace(".csv", "") + "_result.json"
+    storage_client.upload_blob_text(
+        config.OUTPUT_CONTAINER,
+        output_blob_name,
+        json.dumps(result, indent=2),
+    )
 
-    # Persist full trajectory in output/
-    full = {**api_data, "blob_name": blob_name, "trace_id": trace_id}
-    storage_client.upload_blob_text(config.OUTPUT_CONTAINER, f"{doc_id}.json",
-                                     json.dumps(full, indent=2))
-
-    # Persist summary in Cosmos (without big arrays for query speed)
-    cosmos_doc = {
-        "id": doc_id,
+    # 4. Construire le document Cosmos.
+    # `agent_version` est notre partition key (cf. main.bicep).
+    doc = {
+        "id": f"{blob_name}-{blob_hash}-{int(time.time())}",
         "blob_name": blob_name,
-        "agent_version": api_data["agent_version"],
-        "algo": api_data["algo"],
+        "blob_hash": blob_hash,
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "n_steps": api_data["n_steps"],
-        "total_reward": api_data["total_reward"],
-        "cumulative_return": api_data["cumulative_return"],
-        "sharpe_ratio": api_data["sharpe_ratio"],
-        "max_drawdown": api_data["max_drawdown"],
-        "win_rate": api_data["win_rate"],
-        "n_buy": api_data["n_buy"],
-        "n_hold": api_data["n_hold"],
-        "n_sell": api_data["n_sell"],
-        "final_equity": api_data["final_equity"],
-        # Garde un sub-sample du equity_curve pour le dashboard (max 50 points)
-        "equity_curve": api_data["equity_curve"][::max(1, len(api_data["equity_curve"]) // 50)],
-        "duration_ms": api_ms,
-        "trace_id": trace_id,
-        "output_blob": f"{config.OUTPUT_CONTAINER}/{doc_id}.json",
+        "agent_version": result["agent_version"],
+        "algo": result["algo"],
+        "n_steps": result["n_steps"],
+        "total_reward": result["total_reward"],
+        "cumulative_return": result["cumulative_return"],
+        "sharpe_ratio": result["sharpe_ratio"],
+        "max_drawdown": result["max_drawdown"],
+        "win_rate": result["win_rate"],
+        "n_buy": result["n_buy"],
+        "n_hold": result["n_hold"],
+        "n_sell": result["n_sell"],
+        "duration_ms": result["duration_ms"],
+        # On garde la courbe d'equity pour l'affichage dashboard.
+        "equity_curve": result["equity_curve"],
+        "worker_duration_ms": round((time.perf_counter() - t_start) * 1000, 1),
     }
-    cosmos_client.upsert_episode(cosmos_doc)
 
-    total_ms = (time.perf_counter() - t0) * 1000
-    logging.info("Worker DONE blob=%s steps=%d reward=%.4f sharpe=%.2f total_ms=%.1f",
-                 blob_name, api_data["n_steps"], api_data["total_reward"],
-                 api_data["sharpe_ratio"], total_ms)
+    # 5. (optionnel) commentaire LLM
+    try:
+        commentary = market_commentary(doc)
+        if commentary:
+            doc["llm_commentary"] = commentary
+    except Exception as exc:
+        # On ne fait pas echouer le job pour un LLM down - c'est bonus.
+        logging.warning("LLM commentary skipped: %s", exc)
+
+    cosmos_client.upsert_episode(doc)
+    logging.info(
+        "Worker done blob=%s return=%.2f%% sharpe=%.2f ms=%d",
+        blob_name,
+        result["cumulative_return"] * 100,
+        result["sharpe_ratio"],
+        doc["worker_duration_ms"],
+    )

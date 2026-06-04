@@ -1,0 +1,46 @@
+%% Tradeon - high-level event-driven architecture
+%% Render with https://mermaid.live/ or directly in GitHub markdown
+flowchart LR
+    subgraph Client
+        U[User / Dashboard / live_predict.py]
+    end
+
+    subgraph "Azure Container Apps"
+        API[FastAPI rl-api<br/>PPO model in memory<br/>auto-scale 0 to 3]
+    end
+
+    subgraph "Event Bus"
+        EG[Event Grid Topic]
+        Q[Storage Queue]
+        DLQ[Dead Letter Queue]
+    end
+
+    subgraph "Azure Functions"
+        D[dispatcher<br/>EventGridTrigger]
+        W[worker<br/>QueueTrigger]
+    end
+
+    subgraph "Persistence"
+        COS[(Cosmos DB<br/>Free Tier<br/>1000 RU/s)]
+    end
+
+    subgraph "Ops"
+        ACR[Container Registry<br/>tradeon-api:sha]
+        AI[Application Insights]
+        GH[GitHub Actions<br/>OIDC deploy.yml]
+    end
+
+    LIVE[Yahoo Finance API<br/>live OHLCV] -.->|fetch| U
+    U -->|POST /predict| API
+    API -->|publishes event| EG
+    EG --> D
+    D --> Q
+    Q --> W
+    W -->|calls /predict| API
+    W -->|upsert decision| COS
+    Q -.->|failed msgs| DLQ
+    GH -->|build push image| ACR
+    ACR -->|pull| API
+    API -.->|telemetry| AI
+    D -.->|telemetry| AI
+    W -.->|telemetry| AI
